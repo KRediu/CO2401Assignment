@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TDDAssignment.Interfaces;
 
 namespace TDDAssignment
 {
@@ -11,60 +12,86 @@ namespace TDDAssignment
         private string officeID;
         private string currentState;
         private string previousState; // Keeps track of the last normal state
+        private readonly ILightManager lightManager;
+        private readonly IFireAlarmManager fireAlarmManager;
+        private readonly IDoorManager doorManager;
+        private readonly IWebService webService;
+        private readonly IEmailService emailService;
 
-        // Constructor
+        // Constructor for default initialization
         public OfficeController(string officeID)
         {
             SetOfficeID(officeID);
             InitializeState();
         }
 
-        /* PRIVATE METHODS */
+        // LVL2: Constructor with initial state validation
+        public OfficeController(string id, string startState)
+        {
+            SetOfficeID(id);
+            string lowerState = startState.Trim().ToLower();
+            string[] validStates = { "open", "closed", "out of hours" };
 
-        // Initializes the state to "out of hours"
+            if (!Array.Exists(validStates, state => state == lowerState))
+            {
+                throw new ArgumentException("Argument Exception: OfficeController can only be initialised to the following states 'open', 'closed', 'out of hours'");
+            }
+            currentState = lowerState;
+        }
+
+        // LVL2: Constructor with dependency injection
+        public OfficeController(string id, ILightManager iLightManager, IFireAlarmManager iFireAlarmManager, IDoorManager iDoorManager, IWebService iWebService, IEmailService iEmailService)
+        {
+            SetOfficeID(id);
+            InitializeState();
+            lightManager = iLightManager;
+            fireAlarmManager = iFireAlarmManager;
+            doorManager = iDoorManager;
+            webService = iWebService;
+            emailService = iEmailService;
+        }
+
+        /* PRIVATE METHODS */
         private void InitializeState()
         {
             currentState = "out of hours";
         }
 
         /* SETTERS */
-
-        // Setter for office ID
         public void SetOfficeID(string id)
         {
-            officeID = id.ToLower(); // ensure that the capitalism works
+            officeID = id.ToLower();
         }
 
-        // Setter for the state
         public bool SetCurrentState(string newState)
         {
             if (newState == null || string.IsNullOrWhiteSpace(newState))
             {
-                return false; // Prevent null from causing an exception
+                return false;
             }
 
             string lowerNewState = newState.Trim().ToLower();
             string lowerCurrentState = GetCurrentState().ToLower();
-
-            // Valid states
             string[] validStates = { "open", "closed", "out of hours", "fire alarm", "fire drill" };
 
             if (!Array.Exists(validStates, state => state == lowerNewState))
             {
-                return false; // Invalid state
+                return false;
             }
 
-            // Handle state transitions
             switch (lowerNewState)
             {
                 case "open":
                     if (lowerCurrentState == "out of hours" || lowerCurrentState == "open" || lowerCurrentState == "fire alarm" || lowerCurrentState == "fire drill")
                     {
+                        if (doorManager != null && !doorManager.OpenAllDoors())
+                        {
+                            return false;
+                        }
                         currentState = "open";
                         return true;
                     }
                     break;
-
                 case "out of hours":
                     if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "fire alarm" || lowerCurrentState == "out of hours")
                     {
@@ -72,7 +99,6 @@ namespace TDDAssignment
                         return true;
                     }
                     break;
-
                 case "closed":
                     if (lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm")
                     {
@@ -80,51 +106,53 @@ namespace TDDAssignment
                         return true;
                     }
                     else return false;
-
                 case "fire alarm":
                     if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm")
                     {
-                        previousState = currentState; // Save last normal state
+                        previousState = currentState;
                         currentState = "fire alarm";
                         return true;
                     }
                     break;
-
                 case "fire drill":
                     if (lowerCurrentState == "open" || lowerCurrentState == "fire drill" || lowerCurrentState == "out of hours")
                     {
-                        previousState = currentState; // Save last normal state
+                        previousState = currentState;
                         currentState = "fire drill";
                         return true;
                     }
                     break;
-
                 default:
-                    // Handle returning from fire alarm or fire drill
                     if (lowerCurrentState == "fire alarm" || lowerCurrentState == "fire drill")
                     {
-                        if (lowerNewState == previousState && previousState != "fire drill") // Restrict fire drill returns
+                        if (lowerNewState == previousState && previousState != "fire drill")
                         {
                             currentState = previousState;
                             return true;
                         }
-                        return false; // Prevent invalid transitions
+                        return false;
                     }
                     break;
             }
+            return false;
+        }
 
-            return false; // If no valid transition was found
+        /* LVL2 FUNCTIONALITY */
+        public string GetStatusReport()
+        {
+            if (lightManager == null || fireAlarmManager == null || doorManager == null)
+            {
+                throw new InvalidOperationException("OfficeController is missing dependencies");
+            }
+            return lightManager.GetStatus() + doorManager.GetStatus() + fireAlarmManager.GetStatus();
         }
 
         /* GETTERS */
-
-        // Getter for office ID
         public string GetOfficeID()
         {
             return officeID;
         }
 
-        // Getter for office state
         public string GetCurrentState()
         {
             return currentState;

@@ -2,6 +2,10 @@ namespace TDDAssignment.Interfaces
 {
     public interface IWebService
     {
-        void LogEvent(string message);
+        void LogStateChange(string message);
+
+        void LogEngineerRequired(string message);
+
+        void LogFireAlarm(string message);
     }
 }

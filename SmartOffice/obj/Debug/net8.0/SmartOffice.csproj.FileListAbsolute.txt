@@ -27,3 +27,4 @@ C:\Users\slims\Desktop\School\Y3 shit\Software Development\SmartOffice\SmartOffi
 C:\Users\slims\Desktop\School\Y3 shit\Software Development\SmartOffice\SmartOffice\obj\Debug\net8.0\refint\SmartOffice.dll
 C:\Users\slims\Desktop\School\Y3 shit\Software Development\SmartOffice\SmartOffice\obj\Debug\net8.0\SmartOffice.pdb
 C:\Users\slims\Desktop\School\Y3 shit\Software Development\SmartOffice\SmartOffice\obj\Debug\net8.0\ref\SmartOffice.dll
+C:\Users\slims\Desktop\School\Y3 shit\Software Development\SmartOffice\SmartOffice\obj\Debug\net8.0\SmartOffice.sourcelink.json

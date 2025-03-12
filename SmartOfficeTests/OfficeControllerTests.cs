@@ -1,6 +1,8 @@
 using TDDAssignment;
 using System;
 using NUnit.Framework;
+using NSubstitute;
+using TDDAssignment.Interfaces;
 
 [TestFixture]
 class OfficeControllerTests
@@ -138,6 +140,132 @@ class OfficeControllerTests
             // Assert
             Assert.That(result, Is.True);
             Assert.That(controller.GetCurrentState(), Is.EqualTo(currentState));
+        }
+
+        // L2R1: Constructor with initial state validation
+        [Test]
+        public void L2R1_Constructor_ValidInitialState()
+        {
+            // Arrange
+            string officeID = "office123";
+            string startState = "open";
+
+            // Act
+            var controller = new OfficeController(officeID, startState);
+
+            // Assert
+            Assert.That(controller.GetCurrentState(), Is.EqualTo(startState.ToLower()));
+        }
+
+        [Test]
+        public void L2R1_Constructor_InvalidInitialState_ThrowsException()
+        {
+            // Arrange
+            string officeID = "office123";
+            string startState = "invalidState";
+
+            // Act & Assert
+            var ex = Assert.Throws<ArgumentException>(() => new OfficeController(officeID, startState));
+            Assert.That(ex.Message, Is.EqualTo("Argument Exception: OfficeController can only be initialised to the following states 'open', 'closed', 'out of hours'"));
+        }
+
+        // L2R2: Constructor with dependency injection
+        [Test]
+        public void L2R2_Constructor_InitializesWithDependencies()
+        {
+            // Arrange
+            var mockLightManager = NSubstitute.Substitute.For<ILightManager>();
+            var mockFireAlarmManager = NSubstitute.Substitute.For<IFireAlarmManager>();
+            var mockDoorManager = NSubstitute.Substitute.For<IDoorManager>();
+            var mockWebService = NSubstitute.Substitute.For<IWebService>();
+            var mockEmailService = NSubstitute.Substitute.For<IEmailService>();
+            string officeID = "office123";
+
+            // Act
+            var controller = new OfficeController(officeID, mockLightManager, mockFireAlarmManager, mockDoorManager, mockWebService, mockEmailService);
+
+            // Assert
+            Assert.That(controller.GetOfficeID(), Is.EqualTo(officeID.ToLower()));
+        }
+
+        // L2R3: GetStatusReport() aggregates status reports
+        [Test]
+        public void L2R3_GetStatusReport_ReturnsCombinedStatus()
+        {
+            // Arrange
+            var mockLightManager = NSubstitute.Substitute.For<ILightManager>();
+            var mockFireAlarmManager = NSubstitute.Substitute.For<IFireAlarmManager>();
+            var mockDoorManager = NSubstitute.Substitute.For<IDoorManager>();
+
+            mockLightManager.GetStatus().Returns("Lights,OK,OK,FAULT,OK,OK,OK,OK,FAULT,OK,OK,");
+            mockDoorManager.GetStatus().Returns("Doors,OK,OK,FAULT,OK,OK,OK,OK,FAULT,OK,OK,");
+            mockFireAlarmManager.GetStatus().Returns("FireAlarm,OK,FAULT,OK,FAULT,OK,OK,OK,OK,OK,OK,");
+
+            var controller = new OfficeController("office123", mockLightManager, mockFireAlarmManager, mockDoorManager, null, null);
+
+            // Act
+            string statusReport = controller.GetStatusReport();
+
+            // Assert
+            Assert.That(statusReport, Is.EqualTo("Lights,OK,OK,FAULT,OK,OK,OK,OK,FAULT,OK,OK,Doors,OK,OK,FAULT,OK,OK,OK,OK,FAULT,OK,OK,FireAlarm,OK,FAULT,OK,FAULT,OK,OK,OK,OK,OK,OK,"));
+        }
+
+        [Test]
+        public void L2R3_GetStatusReport_HandlesNullOrEmptyStatus()
+        {
+            // Arrange
+            var mockLightManager = NSubstitute.Substitute.For<ILightManager>();
+            var mockFireAlarmManager = NSubstitute.Substitute.For<IFireAlarmManager>();
+            var mockDoorManager = NSubstitute.Substitute.For<IDoorManager>();
+
+            mockLightManager.GetStatus().Returns(string.Empty);
+            mockDoorManager.GetStatus().Returns((string)null);
+            mockFireAlarmManager.GetStatus().Returns("FireAlarm,OK,OK,OK,");
+
+            var controller = new OfficeController("office123", mockLightManager, mockFireAlarmManager, mockDoorManager, null, null);
+
+            // Act
+            string statusReport = controller.GetStatusReport();
+
+            // Assert
+            Assert.That(statusReport, Is.EqualTo("FireAlarm,OK,OK,OK,"));
+        }
+
+        // L2R4: SetCurrentState("open") should call OpenAllDoors
+        [Test]
+        public void L2R4_SetCurrentState_Open_CallsOpenAllDoors()
+        {
+            // Arrange
+            var mockDoorManager = Substitute.For<IDoorManager>();
+            mockDoorManager.OpenAllDoors().Returns(true);
+
+            var controller = new OfficeController("office123", null, null, mockDoorManager, null, null);
+
+            // Act
+            bool result = controller.SetCurrentState("open");
+
+            // Assert
+            Assert.That(result, Is.True);
+            Assert.That(controller.GetCurrentState(), Is.EqualTo("open"));
+        }
+
+        // L2R5: SetCurrentState("open") fails if OpenAllDoors() fails
+        [Test]
+        public void L2R5_SetCurrentState_Open_FailsIfDoorsDontOpen()
+        {
+            // Arrange
+            var mockDoorManager = Substitute.For<IDoorManager>();
+            mockDoorManager.OpenAllDoors().Returns(false); // Simulate failure to open doors
+
+            var controller = new OfficeController("office123", null, null, mockDoorManager, null, null);
+            controller.SetCurrentState("closed");
+
+            // Act
+            bool result = controller.SetCurrentState("open");
+
+            // Assert
+            Assert.That(result, Is.False);
+            Assert.That(controller.GetCurrentState(), Is.EqualTo("closed"));
         }
 
     }
