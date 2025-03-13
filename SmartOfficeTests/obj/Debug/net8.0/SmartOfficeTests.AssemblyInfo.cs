@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartOfficeTests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c42149dcd1d330bfb125dd6c6014b2c35e83a004")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dfbb2e1d071fd3ae96c256b20df37e6d4252d4bc")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartOfficeTests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartOfficeTests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

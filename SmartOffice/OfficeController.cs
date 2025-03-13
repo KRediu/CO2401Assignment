@@ -99,14 +99,14 @@ namespace TDDAssignment
                     }
                     break;
                 case "out of hours": // out of hours state - default state
-                    if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "fire alarm" || lowerCurrentState == "out of hours") // valid states to transition from, and self
+                    if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "fire alarm" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire drill") // valid states to transition from, and self
                     {
                         currentState = "out of hours";
                         return true; // sets state, returns
                     }
                     break;
                 case "closed": // closed state
-                    if (lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm") // valid states to transition from, and self
+                    if (lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm" || lowerCurrentState == "fire drill") // valid states to transition from, and self
                     {
                         // calls to dependencies - function proceeds even if no light manager is present
                         if (doorManager != null && !doorManager.LockAllDoors()) // transition only succeeds upon successful call to LockAllDoors()
@@ -179,7 +179,7 @@ namespace TDDAssignment
             {
                 faults.Add("FireAlarm");
             }
-
+           
             if (doorManager.GetStatus() != null && doorManager.GetStatus().Contains("FAULT"))
             {
                 faults.Add("Doors");

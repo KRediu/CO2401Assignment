@@ -118,7 +118,6 @@ class OfficeControllerTests
         [TestCase("fire alarm", "out of hours", true)] // Valid transition
         [TestCase("closed", "fire alarm", true)] // Valid transition
         [TestCase("closed", "open", false)] // Invalid transition - Cannot go from closed to open directly
-        [TestCase("fire drill", "closed", false)] // Invalid transition - Cannot go from fire drill to closed
         [TestCase("fire alarm", "fire drill", false)] // Invalid transition - Cannot switch from fire alarm to fire drill
         [TestCase("closed", "random state", false)] // Invalid transition - Invalid state
         [TestCase("fire alarm", " ", false)] // Invalid transition - Empty state string
@@ -445,6 +444,7 @@ class OfficeControllerTests
             // Assert - ensure transition is successful, state is fire alarm, and that a call to relevant function was made
             Assert.That(result, Is.True);
             Assert.That(controller.GetCurrentState(), Is.EqualTo("fire alarm"));
+
             mockWebService.Received(1).LogFireAlarm("fire alarm");
         }
         
