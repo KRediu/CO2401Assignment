@@ -1,0 +1,5 @@
+video:
+https://drive.google.com/file/d/1ZnJrgd8eGlMlO_aQH8ivD7mRceVNSr_Q/view?usp=drive_link
+
+github:
+https://github.com/KRediu/CO2401Assignment
