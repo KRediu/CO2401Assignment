@@ -8,6 +8,7 @@ namespace TDDAssignment.Interfaces
         bool OpenAllDoors(); 
         bool LockAllDoors();
 
+        // Individual open/lock method, unused
         bool OpenDoor(int id);
         bool LockDoor(int id);
     }

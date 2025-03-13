@@ -1,9 +1,10 @@
 namespace TDDAssignment.Interfaces
 {
-    public interface IFireAlarmManager
+    public interface IFireAlarmManager // Fire alarm manager interface
     {
-        string GetStatus();
+        string GetStatus(); // status log method, returns strings of OK or FAULT
 
+        // alarm set method
         bool SetAlarm(bool isActive);
     }
 }

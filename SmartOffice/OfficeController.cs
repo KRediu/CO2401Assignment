@@ -9,41 +9,46 @@ namespace TDDAssignment
 {
     public class OfficeController
     {
-        private string officeID;
-        private string currentState;
-        private string previousState; // Keeps track of the last normal state
+        private string officeID; // initialization ID for controller
+        private string currentState; // office state variable
+        private string previousState; // Keeps track of the last normal state - unused, only here to represent History node
+
+        // mock object declarations - set readonly for dependency injection
         private readonly ILightManager lightManager;
         private readonly IFireAlarmManager fireAlarmManager;
         private readonly IDoorManager doorManager;
         private readonly IWebService webService;
         private readonly IEmailService emailService;
 
-        // Constructor for default initialization
+        // Constructor for default initialization - L1R1
         public OfficeController(string officeID)
         {
             SetOfficeID(officeID);
-            InitializeState();
+            currentState = "out of hours"; // initial state
         }
 
-        // LVL2: Constructor with initial state validation
+        // Constructor with initial state validation - L2R1
         public OfficeController(string id, string startState)
         {
             SetOfficeID(id);
-            string lowerState = startState.Trim().ToLower();
-            string[] validStates = { "open", "closed", "out of hours" };
 
-            if (!Array.Exists(validStates, state => state == lowerState))
+            string lowerState = startState.Trim().ToLower(); // sets given state, cuts unnecessary whitespaces and sets to lowercase
+            string[] validStates = { "open", "closed", "out of hours" }; // valid initial state list
+
+            if (!Array.Exists(validStates, state => state == lowerState)) // If given state does not match any valid initial state, throw exception
             {
                 throw new ArgumentException("Argument Exception: OfficeController can only be initialised to the following states 'open', 'closed', 'out of hours'");
             }
-            currentState = lowerState;
+            currentState = lowerState; // sets state to given one
         }
 
-        // LVL2: Constructor with dependency injection
+        // Constructor with dependency injection - L2R2
         public OfficeController(string id, ILightManager iLightManager, IFireAlarmManager iFireAlarmManager, IDoorManager iDoorManager, IWebService iWebService, IEmailService iEmailService)
         {
             SetOfficeID(id);
-            InitializeState();
+            currentState = "out of hours";
+
+            // initializes dependencies
             lightManager = iLightManager;
             fireAlarmManager = iFireAlarmManager;
             doorManager = iDoorManager;
@@ -51,106 +56,112 @@ namespace TDDAssignment
             emailService = iEmailService;
         }
 
-        /* PRIVATE METHODS */
-        private void InitializeState()
-        {
-            currentState = "out of hours";
-        }
+        // Setters
 
-        /* SETTERS */
+        // Lowercases and sets controller ID
         public void SetOfficeID(string id)
         {
             officeID = id.ToLower();
         }
 
+        // Sets office controller state and transitions
         public bool SetCurrentState(string newState)
         {
-            if (newState == null || string.IsNullOrWhiteSpace(newState))
+            if (newState == null || string.IsNullOrWhiteSpace(newState)) // failsafe for null/empty strings or null value
             {
                 return false;
             }
 
-            string lowerNewState = newState.Trim().ToLower();
-            string lowerCurrentState = GetCurrentState().ToLower();
-            string[] validStates = { "open", "closed", "out of hours", "fire alarm", "fire drill" };
+            string lowerNewState = newState.Trim().ToLower(); // lowercases input and trims unnecessary whitespaces
+            string lowerCurrentState = GetCurrentState().ToLower(); // lowercases current state
 
-            if (!Array.Exists(validStates, state => state == lowerNewState))
+            string[] validStates = { "open", "closed", "out of hours", "fire alarm", "fire drill" }; // valid state array
+
+            if (!Array.Exists(validStates, state => state == lowerNewState)) // if given input doesn't match any valid state, return with failure
             {
                 return false;
             }
 
+            // switch for valid states
             switch (lowerNewState)
             {
-                case "open":
-                    if (lowerCurrentState == "out of hours" || lowerCurrentState == "open" || lowerCurrentState == "fire alarm" || lowerCurrentState == "fire drill")
+                case "open": // open state
+                    if (lowerCurrentState == "out of hours" || lowerCurrentState == "open" || lowerCurrentState == "fire alarm" || lowerCurrentState == "fire drill") // valid states to transition from, and self
                     {
-                        if (doorManager != null && !doorManager.OpenAllDoors())
+                        // dependency call
+                        if (doorManager != null && !doorManager.OpenAllDoors()) // transition only succeeds upon successful call to OpenAllDoors()
                         {
                             return false;
                         }
+
                         currentState = "open";
-                        return true;
+                        return true; // sets state, returns
                     }
                     break;
-                case "out of hours":
-                    if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "fire alarm" || lowerCurrentState == "out of hours")
+                case "out of hours": // out of hours state - default state
+                    if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "fire alarm" || lowerCurrentState == "out of hours") // valid states to transition from, and self
                     {
                         currentState = "out of hours";
-                        return true;
+                        return true; // sets state, returns
                     }
                     break;
-                case "closed":
-                    if (lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm")
+                case "closed": // closed state
+                    if (lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm") // valid states to transition from, and self
                     {
-                        if (doorManager != null && !doorManager.LockAllDoors())
+                        // calls to dependencies - function proceeds even if no light manager is present
+                        if (doorManager != null && !doorManager.LockAllDoors()) // transition only succeeds upon successful call to LockAllDoors()
                         {
                             return false;
                         }
                         lightManager?.SetAllLights(false);
+
                         currentState = "closed";
-                        return true;
+                        return true; // sets state, returns
                     }
                     else return false;
-                case "fire alarm":
-                    if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm")
+                case "fire alarm": // fire alarm state
+                    if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm") // valid states to transition from, and self
                     {
-                        previousState = currentState;
+                        previousState = currentState; // saves previous state
 
-                        doorManager?.OpenAllDoors();
-                        fireAlarmManager?.SetAlarm(true);
-                        lightManager?.SetAllLights(true);
+                        // calls to dependencies - function will proceed regardless if the dependencies actually exist
+                        doorManager?.OpenAllDoors(); // attempts to open all doors
+                        fireAlarmManager?.SetAlarm(true); // attempts to set alarm on
+                        lightManager?.SetAllLights(true); // attempts to set all lights on
 
-                        try
+                        try // exception handling for web service
                         {
-                            webService.LogFireAlarm("fire alarm");
+                            webService.LogFireAlarm("fire alarm"); // attempts to log alarm
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) // if there is any failure for logging, send an email to address below with exception message
                         {
                             // If LogFireAlarm throws an exception, send an email with the exception message.
                             emailService?.SendMail("citycouncil@preston.gov.uk", "failed to log alarm", ex.Message);
                         }
 
                         currentState = "fire alarm";
-                        return true;
+                        return true; // sets state, returns
                     }
                     break;
-                case "fire drill":
-                    if (lowerCurrentState == "open" || lowerCurrentState == "fire drill" || lowerCurrentState == "out of hours")
+                case "fire drill": // fire drill state
+                    if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "fire drill" || lowerCurrentState == "out of hours") // valid states to transition from, and self
                     {
-                        previousState = currentState;
+                        previousState = currentState; // saves previous state
+
                         currentState = "fire drill";
-                        return true;
+                        return true; // sets state, returns
                     }
                     break;
-                default:
+                default: // failsafe
                     return false;
             }
             return false;
         }
 
+        // Dependency status report function - gets individual status messages and combines into one
         public string GetStatusReport()
         {
-            if (lightManager == null || fireAlarmManager == null || doorManager == null)
+            if (lightManager == null || fireAlarmManager == null || doorManager == null) // failure if basic manager dependencies do not exist, throw exception
             {
                 throw new InvalidOperationException("OfficeController is missing dependencies");
             }
@@ -158,18 +169,18 @@ namespace TDDAssignment
             // Initialize a list to collect faults
             var faults = new List<string>();
 
-            // Check for faults and add corresponding device names to the list
-            if (lightManager.GetStatus() != null && lightManager.GetStatus().Contains("FAULT")) // Assuming "fault" indicates a problem
+            // Check for faults and null strings, if any faults, add corresponding device names to the list
+            if (lightManager.GetStatus() != null && lightManager.GetStatus().Contains("FAULT"))
             {
                 faults.Add("Lights");
             }
 
-            if (fireAlarmManager.GetStatus() != null && fireAlarmManager.GetStatus().Contains("FAULT")) // Similarly for fire alarm
+            if (fireAlarmManager.GetStatus() != null && fireAlarmManager.GetStatus().Contains("FAULT"))
             {
                 faults.Add("FireAlarm");
             }
 
-            if (doorManager.GetStatus() != null && doorManager.GetStatus().Contains("FAULT")) // And for doors
+            if (doorManager.GetStatus() != null && doorManager.GetStatus().Contains("FAULT"))
             {
                 faults.Add("Doors");
             }
@@ -181,15 +192,18 @@ namespace TDDAssignment
                 webService.LogEngineerRequired(faultString); // Log the faults
             }
 
-            return lightManager.GetStatus() + doorManager.GetStatus() + fireAlarmManager.GetStatus();
+            return lightManager.GetStatus() + doorManager.GetStatus() + fireAlarmManager.GetStatus(); // return conjoined messages
         }
 
-        /* GETTERS */
+        // Getters
+
+        // Office ID getter function
         public string GetOfficeID()
         {
             return officeID;
         }
 
+        // Office state getter function
         public string GetCurrentState()
         {
             return currentState;
