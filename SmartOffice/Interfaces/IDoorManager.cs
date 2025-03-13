@@ -1,10 +1,11 @@
 namespace TDDAssignment.Interfaces
 {
-    public interface IDoorManager
+    public interface IDoorManager // Door manager interface
     {
-        string GetStatus();
+        string GetStatus(); // status log method, returns strings of OK or FAULT
 
-        bool OpenAllDoors();
+        // open/lock all doors methods
+        bool OpenAllDoors(); 
         bool LockAllDoors();
 
         bool OpenDoor(int id);

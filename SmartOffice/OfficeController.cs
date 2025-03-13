@@ -102,6 +102,11 @@ namespace TDDAssignment
                 case "closed":
                     if (lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm")
                     {
+                        if (doorManager != null && !doorManager.LockAllDoors())
+                        {
+                            return false;
+                        }
+                        lightManager?.SetAllLights(false);
                         currentState = "closed";
                         return true;
                     }
@@ -110,6 +115,21 @@ namespace TDDAssignment
                     if (lowerCurrentState == "open" || lowerCurrentState == "closed" || lowerCurrentState == "out of hours" || lowerCurrentState == "fire alarm")
                     {
                         previousState = currentState;
+
+                        doorManager?.OpenAllDoors();
+                        fireAlarmManager?.SetAlarm(true);
+                        lightManager?.SetAllLights(true);
+
+                        try
+                        {
+                            webService.LogFireAlarm("fire alarm");
+                        }
+                        catch (Exception ex)
+                        {
+                            // If LogFireAlarm throws an exception, send an email with the exception message.
+                            emailService?.SendMail("citycouncil@preston.gov.uk", "failed to log alarm", ex.Message);
+                        }
+
                         currentState = "fire alarm";
                         return true;
                     }
@@ -123,27 +143,44 @@ namespace TDDAssignment
                     }
                     break;
                 default:
-                    if (lowerCurrentState == "fire alarm" || lowerCurrentState == "fire drill")
-                    {
-                        if (lowerNewState == previousState && previousState != "fire drill")
-                        {
-                            currentState = previousState;
-                            return true;
-                        }
-                        return false;
-                    }
-                    break;
+                    return false;
             }
             return false;
         }
 
-        /* LVL2 FUNCTIONALITY */
         public string GetStatusReport()
         {
             if (lightManager == null || fireAlarmManager == null || doorManager == null)
             {
                 throw new InvalidOperationException("OfficeController is missing dependencies");
             }
+
+            // Initialize a list to collect faults
+            var faults = new List<string>();
+
+            // Check for faults and add corresponding device names to the list
+            if (lightManager.GetStatus() != null && lightManager.GetStatus().Contains("FAULT")) // Assuming "fault" indicates a problem
+            {
+                faults.Add("Lights");
+            }
+
+            if (fireAlarmManager.GetStatus() != null && fireAlarmManager.GetStatus().Contains("FAULT")) // Similarly for fire alarm
+            {
+                faults.Add("FireAlarm");
+            }
+
+            if (doorManager.GetStatus() != null && doorManager.GetStatus().Contains("FAULT")) // And for doors
+            {
+                faults.Add("Doors");
+            }
+
+            // If faults exist, log them to the WebService
+            if (faults.Count > 0)
+            {
+                string faultString = string.Join(",", faults) + ","; // Comma-separated fault list
+                webService.LogEngineerRequired(faultString); // Log the faults
+            }
+
             return lightManager.GetStatus() + doorManager.GetStatus() + fireAlarmManager.GetStatus();
         }
 

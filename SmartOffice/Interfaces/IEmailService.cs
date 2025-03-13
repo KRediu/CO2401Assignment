@@ -2,6 +2,6 @@ namespace TDDAssignment.Interfaces
 {
     public interface IEmailService
     {
-        void SendEmail(string emailAddress, string subject, string message);
+        void SendMail(string emailAddress, string subject, string message);
     }
 }
